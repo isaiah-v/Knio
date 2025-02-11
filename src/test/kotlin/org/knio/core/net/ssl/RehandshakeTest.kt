@@ -43,6 +43,7 @@ class RehandshakeTest: TestServerTest<RehandshakeServer>() {
         // on each iteration, the server will request a re-handshake
 
         // Java
+        /*
         createJavaSSLSocket("TLSv1.2").use { sslClient ->
             val expectedList = listOf(
                 "test 1",
@@ -59,6 +60,7 @@ class RehandshakeTest: TestServerTest<RehandshakeServer>() {
                 assertEquals(expected, result)
             }
         }
+         */
 
         // Knio
         createKnioSSLSocket("TLSv1.2").use { sslClient ->

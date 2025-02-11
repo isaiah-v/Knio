@@ -49,7 +49,7 @@ internal abstract class KSSLSocketAbstract(
     }
 
     override suspend fun getSession(): SSLSession = lock.withLock {
-        startHandshake0() // lock is already acquired
+        softStartHandshake()
         return sslEngine.session
     }
 
@@ -134,9 +134,11 @@ internal abstract class KSSLSocketAbstract(
     }
 
     /**
-     * Starts the handshake process without acquiring the lock.
+     * Starts the handshake process if it has not already been started.
+     *
+     * Note: This function should not acquire the lock. The calling function will have already acquired the lock.
      */
-    protected abstract suspend fun startHandshake0();
+    protected abstract suspend fun softStartHandshake();
 
     /**
      * Must be called after the handshake is complete.
