@@ -5,6 +5,7 @@ import org.knio.core.net.KServerSocket
 import org.knio.core.net.KServerSocketFactory
 import org.knio.core.net.KSocket
 import org.knio.core.net.KSocketFactory
+import org.knio.core.net.ssl.KSSLSocket
 import org.knio.core.net.ssl.getKnioSSLServerSocketFactory
 import org.knio.core.net.ssl.getKnioSSLSocketFactory
 import org.knio.core.test.utils.createTestSSLContext
@@ -13,9 +14,11 @@ import java.net.ServerSocket
 import java.net.Socket
 import javax.net.ServerSocketFactory
 import javax.net.SocketFactory
+import javax.net.ssl.SSLServerSocket
+import javax.net.ssl.SSLSocket
 
-const val PORT = 8080
-const val SSL_PORT = 8443
+private const val PORT = 8080
+private const val SSL_PORT = 8443
 
 abstract class TestServerTest<T: TestServer> {
 
@@ -44,17 +47,29 @@ abstract class TestServerTest<T: TestServer> {
     }
 }
 
+
 fun createJavaServerSocket(isSSL: Boolean): ServerSocket = if(isSSL) {
     createTestSSLContext().serverSocketFactory.createServerSocket(SSL_PORT)
 } else {
     ServerSocketFactory.getDefault().createServerSocket(PORT)
 }
 
-fun createJavaSocket(isSSL: Boolean): Socket = if(isSSL) {
-    createTrustAllSSLContext().socketFactory.createSocket("localhost", SSL_PORT)
+fun createJavaSSLServerSocket (
+    protocol: String = "TLS"
+): SSLServerSocket = createTestSSLContext(protocol).serverSocketFactory.createServerSocket(SSL_PORT) as SSLServerSocket
+
+
+fun TestServer.createJavaSocket(): Socket = if(isSSL()) {
+    createJavaSSLSocket()
 } else {
-    SocketFactory.getDefault().createSocket("localhost", PORT)
+    SocketFactory.getDefault().createSocket("localhost", getPort())
 }
+
+fun TestServer.createJavaSSLSocket(
+    protocol: String = "TLS"
+): SSLSocket =
+    createTrustAllSSLContext(protocol).socketFactory.createSocket("localhost", getPort()) as SSLSocket
+
 
 suspend fun createKnioServerSocket(isSSL: Boolean): KServerSocket = if(isSSL) {
     createTestSSLContext().getKnioSSLServerSocketFactory().createServerSocket(SSL_PORT)
@@ -62,8 +77,13 @@ suspend fun createKnioServerSocket(isSSL: Boolean): KServerSocket = if(isSSL) {
     KServerSocketFactory.getDefault().createServerSocket(PORT)
 }
 
-suspend fun createKnioSocket(isSSL: Boolean): KSocket = if (isSSL) {
-    createTrustAllSSLContext().getKnioSSLSocketFactory().createSocket("localhost", SSL_PORT)
+suspend fun TestServer.createKnioSocket(): KSocket = if (isSSL()) {
+    createTrustAllSSLContext().getKnioSSLSocketFactory().createSocket("localhost", getPort())
 } else {
-    KSocketFactory.getDefault().createSocket("localhost", PORT)
+    KSocketFactory.getDefault().createSocket("localhost", getPort())
 }
+
+suspend fun TestServer.createKnioSSLSocket(
+    protocol: String = "TLS"
+): KSSLSocket =
+    createTrustAllSSLContext(protocol).getKnioSSLSocketFactory().createSocket("localhost", getPort())

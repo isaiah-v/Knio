@@ -17,7 +17,7 @@ class ReadWriteTimoutTest: TestServerTest<AcceptOnlyServer>() {
     @ValueSource(booleans = [false, true])
     fun `test read timeout`(isSSL: Boolean) = runServer(isSSL) {
         // java
-        createJavaSocket(isSSL).use { client ->
+        createJavaSocket().use { client ->
             client.soTimeout = 500
 
             assertThrows<SocketTimeoutException> {
@@ -26,7 +26,7 @@ class ReadWriteTimoutTest: TestServerTest<AcceptOnlyServer>() {
         }
 
         // knio
-        createKnioSocket(isSSL).use { client ->
+        createKnioSocket().use { client ->
             client.setReadTimeout(500)
 
             assertThrows<SocketTimeoutException> {

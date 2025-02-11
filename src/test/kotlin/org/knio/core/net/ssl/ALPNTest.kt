@@ -40,7 +40,7 @@ class ALPNTest: TestServerTest<ALPNServer>() {
             sslClient.setHandshakeApplicationProtocolSelector { _, _ -> "test" }
 
             assertNull(sslClient.applicationProtocol) // before connect
-            sslClient.connect(InetSocketAddress("localhost", 8443))
+            sslClient.connect(InetSocketAddress("localhost", getPort()))
 
             assertNull(sslClient.applicationProtocol) // before handshake
             sslClient.startHandshake()
@@ -56,7 +56,7 @@ class ALPNTest: TestServerTest<ALPNServer>() {
             sslClient.setHandshakeApplicationProtocolSelector { _, _ -> "test" }
 
             assertNull(sslClient.getApplicationProtocol()) // before connect
-            sslClient.connect(InetSocketAddress("localhost", 8443))
+            sslClient.connect(InetSocketAddress("localhost", getPort()))
 
             assertNull(sslClient.getApplicationProtocol()) // before handshake
             sslClient.startHandshake()
@@ -77,7 +77,7 @@ class ALPNTest: TestServerTest<ALPNServer>() {
             }
 
             assertNull(sslClient.applicationProtocol) // before connect
-            sslClient.connect(InetSocketAddress("localhost", 8443))
+            sslClient.connect(InetSocketAddress("localhost", getPort()))
 
             assertNull(sslClient.applicationProtocol) // before handshake
             sslClient.startHandshake()
@@ -95,7 +95,7 @@ class ALPNTest: TestServerTest<ALPNServer>() {
             })
 
             assertNull(sslClient.getApplicationProtocol()) // before connect
-            sslClient.connect(InetSocketAddress("localhost", 8443))
+            sslClient.connect(InetSocketAddress("localhost", getPort()))
 
             assertNull(sslClient.getApplicationProtocol()) // before handshake
             sslClient.startHandshake()
@@ -116,7 +116,7 @@ class ALPNTest: TestServerTest<ALPNServer>() {
             }
 
             assertNull(sslClient.applicationProtocol) // before connect
-            sslClient.connect(InetSocketAddress("localhost", 8443))
+            sslClient.connect(InetSocketAddress("localhost", getPort()))
 
             assertNull(sslClient.applicationProtocol) // before handshake
 
@@ -134,7 +134,7 @@ class ALPNTest: TestServerTest<ALPNServer>() {
             })
 
             assertNull(sslClient.getApplicationProtocol()) // before connect
-            sslClient.connect(InetSocketAddress("localhost", 8443))
+            sslClient.connect(InetSocketAddress("localhost", getPort()))
 
             assertNull(sslClient.getApplicationProtocol()) // before handshake
             assertThrows<SSLHandshakeException> {

@@ -31,7 +31,7 @@ abstract class ReverseServerTest<T: TestServer>: TestServerTest<T>() {
         val expected = text.reversed()
 
         // java
-        createJavaSocket(isSSL).use { client ->
+        createJavaSocket().use { client ->
             val str = StringBuilder()
 
             client.soTimeout = 1000
@@ -51,7 +51,7 @@ abstract class ReverseServerTest<T: TestServer>: TestServerTest<T>() {
         }
 
         // knio
-        createKnioSocket(isSSL).use { client ->
+        createKnioSocket().use { client ->
             val str = StringBuilder()
 
             client.setReadTimeout(1000)
@@ -83,7 +83,7 @@ abstract class ReverseServerTest<T: TestServer>: TestServerTest<T>() {
         val text = "Hello World"
 
         // java
-        createJavaSocket(isSSL).use { client ->
+        createJavaSocket().use { client ->
             client.getOutputStream().write(text.toByteArray(Charsets.UTF_8))
             client.shutdownOutput()
 
@@ -93,7 +93,7 @@ abstract class ReverseServerTest<T: TestServer>: TestServerTest<T>() {
         }
 
         // knio
-        createKnioSocket(isSSL).use { client ->
+        createKnioSocket().use { client ->
             client.getOutputStream().write(text.toByteArray(Charsets.UTF_8))
             client.shutdownOutput()
 
@@ -114,7 +114,7 @@ abstract class ReverseServerTest<T: TestServer>: TestServerTest<T>() {
         val text = "Hello World"
 
         // java
-        createJavaSocket(isSSL).use { client ->
+        createJavaSocket().use { client ->
             client.soTimeout = 1000
 
             client.getOutputStream().use { output ->
@@ -129,7 +129,7 @@ abstract class ReverseServerTest<T: TestServer>: TestServerTest<T>() {
         }
 
         // knio
-        createKnioSocket(isSSL).use { client ->
+        createKnioSocket().use { client ->
             client.setReadTimeout(1000)
             client.setWriteTimeout(1000)
 
@@ -157,7 +157,7 @@ abstract class ReverseServerTest<T: TestServer>: TestServerTest<T>() {
         val expected = text.reversed()
 
         // java
-        createJavaSocket(isSSL).use { client ->
+        createJavaSocket().use { client ->
             val str = StringBuilder()
 
             client.soTimeout = 1000
@@ -180,7 +180,7 @@ abstract class ReverseServerTest<T: TestServer>: TestServerTest<T>() {
         }
 
         // knio
-        createKnioSocket(isSSL).use { client ->
+        createKnioSocket().use { client ->
             val str = StringBuilder()
 
             client.setWriteTimeout(1000)
@@ -208,7 +208,7 @@ abstract class ReverseServerTest<T: TestServer>: TestServerTest<T>() {
     @ValueSource(booleans = [false, true])
     fun `test read timeout`(isSSL: Boolean) = runServer(isSSL) {
         // java
-        createJavaSocket(isSSL).use { client ->
+        createJavaSocket().use { client ->
             client.soTimeout = 1000
 
             assertThrows<SocketTimeoutException> {
@@ -217,7 +217,7 @@ abstract class ReverseServerTest<T: TestServer>: TestServerTest<T>() {
         }
 
         // knio
-        createKnioSocket(isSSL).use { client ->
+        createKnioSocket().use { client ->
             client.setReadTimeout(1000)
 
             assertThrows<SocketTimeoutException> {
@@ -234,7 +234,7 @@ abstract class ReverseServerTest<T: TestServer>: TestServerTest<T>() {
         // The IOException thrown is a SocketException
 
         // java
-        createJavaSocket(isSSL).use { client ->
+        createJavaSocket().use { client ->
             client.shutdownOutput()
 
             assertThrows<SocketException> {
@@ -243,7 +243,7 @@ abstract class ReverseServerTest<T: TestServer>: TestServerTest<T>() {
         }
 
         // knio
-        createKnioSocket(isSSL).use { client ->
+        createKnioSocket().use { client ->
             client.shutdownOutput()
 
             assertThrows<SocketException> {
@@ -256,7 +256,7 @@ abstract class ReverseServerTest<T: TestServer>: TestServerTest<T>() {
     @ValueSource(booleans = [false, true])
     fun `test getting input stream after shutdown input`(isSSL: Boolean) = runServer(isSSL) {
         // java
-        createJavaSocket(isSSL).use { client ->
+        createJavaSocket().use { client ->
             client.shutdownInput()
 
             assertThrows<SocketException> {
@@ -265,7 +265,7 @@ abstract class ReverseServerTest<T: TestServer>: TestServerTest<T>() {
         }
 
         // knio
-        createKnioSocket(isSSL).use { client ->
+        createKnioSocket().use { client ->
             client.shutdownInput()
 
             assertThrows<SocketException> {
@@ -282,7 +282,7 @@ abstract class ReverseServerTest<T: TestServer>: TestServerTest<T>() {
         // The IOException thrown is a SocketException
 
         // java
-        createJavaSocket(isSSL).use { client ->
+        createJavaSocket().use { client ->
             val inputStream = client.getInputStream()
             client.shutdownInput()
 
@@ -290,7 +290,7 @@ abstract class ReverseServerTest<T: TestServer>: TestServerTest<T>() {
         }
 
         // knio
-        createKnioSocket(isSSL).use { client ->
+        createKnioSocket().use { client ->
             val inputStream = client.getInputStream()
             client.shutdownInput()
 
@@ -302,7 +302,7 @@ abstract class ReverseServerTest<T: TestServer>: TestServerTest<T>() {
     @ValueSource(booleans = [false, true])
     fun `test getting input stream after close`(isSSL: Boolean) = runServer(isSSL) {
         // java
-        createJavaSocket(isSSL).use { client ->
+        createJavaSocket().use { client ->
             client.close()
 
             assertThrows<SocketException> {
@@ -311,7 +311,7 @@ abstract class ReverseServerTest<T: TestServer>: TestServerTest<T>() {
         }
 
         // knio
-        createKnioSocket(isSSL).use { client ->
+        createKnioSocket().use { client ->
             client.close()
 
             assertThrows<SocketException> {

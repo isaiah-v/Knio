@@ -6,6 +6,8 @@ import org.knio.core.io.KOutputStream
 import org.knio.core.lang.use
 import org.knio.core.net.KServerSocket
 import org.knio.core.net.KSocket
+import org.knio.core.net.ssl.KSSLServerSocket
+import org.knio.core.net.ssl.KSSLSocket
 import org.knio.core.test.servers.TestServer
 import java.net.SocketException
 import javax.net.ssl.SSLSocket
@@ -99,5 +101,13 @@ class KnioReverseServer(
 
     override suspend fun stop() {
         serverSocket.close()
+    }
+
+    override fun isSSL(): Boolean {
+        return serverSocket is KSSLServerSocket
+    }
+
+    override fun getPort(): Int {
+        return runBlocking { serverSocket.getLocalPort() }
     }
 }

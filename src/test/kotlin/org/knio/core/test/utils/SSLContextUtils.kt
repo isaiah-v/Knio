@@ -18,8 +18,10 @@ fun createTrustAllManagers(): Array<TrustManager> {
     })
 }
 
-fun createTestSSLContext () = createSSLContext(
-    protocol = "TLSv1.3",
+fun createTestSSLContext (
+    protocol: String = "TLS",
+) = createSSLContext(
+    protocol = protocol,
     keystore = "src/test/resources/keystore.p12",
     keystorePassword = "password",
     truststore = "src/test/resources/keystore.p12",
@@ -60,8 +62,10 @@ fun createSSLContext (
 
 }
 
-fun createTrustAllSSLContext(): SSLContext {
-    val sslContext = SSLContext.getInstance("TLS")
+fun createTrustAllSSLContext(
+    protocol: String = "TLS",
+): SSLContext {
+    val sslContext = SSLContext.getInstance(protocol)
     sslContext.init(null, createTrustAllManagers(), null)
 
     return sslContext

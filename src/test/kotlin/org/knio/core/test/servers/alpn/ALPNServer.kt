@@ -54,4 +54,12 @@ class ALPNServer(
     override suspend fun stop() {
         serverSocket.close()
     }
+
+    override fun isSSL(): Boolean {
+        return true
+    }
+
+    override fun getPort(): Int {
+        return serverSocket.localPort
+    }
 }

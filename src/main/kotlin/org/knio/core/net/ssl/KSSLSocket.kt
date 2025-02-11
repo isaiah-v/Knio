@@ -344,9 +344,6 @@ interface KSSLSocket: KSocket {
      * handshakes on an existing socket and may throw an [IOException].
      *
      * @throws IOException  on a network level error
-     *
-     * @implNote TODO tests
-     *  - test multiple handshakes
      */
     @Throws(IOException::class)
     suspend fun startHandshake()

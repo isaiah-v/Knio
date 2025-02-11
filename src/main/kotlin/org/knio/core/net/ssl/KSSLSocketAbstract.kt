@@ -16,100 +16,98 @@ internal abstract class KSSLSocketAbstract(
     useClientMode: Boolean,
 ): KSSLSocket, KSocketAbstract(channel) {
 
-    private var handshakeListenersMutex:Mutex? = Mutex()
-    private var handshakeListeners: MutableSet<KHandshakeCompletedListener>? = mutableSetOf()
+    protected val lock: Mutex = Mutex()
+
+    private val handshakeListeners: MutableSet<KHandshakeCompletedListener> = mutableSetOf()
 
     init {
         sslEngine.useClientMode = useClientMode
     }
 
-    override suspend fun getSupportedCipherSuites(): Array<String> {
+    override suspend fun getSupportedCipherSuites(): Array<String> = lock.withLock {
         return sslEngine.supportedCipherSuites
     }
 
-    override suspend fun getEnabledCipherSuites(): Array<String> {
+    override suspend fun getEnabledCipherSuites(): Array<String> = lock.withLock {
         return sslEngine.enabledCipherSuites
     }
 
-    override suspend fun setEnabledCipherSuites(suites: Array<String>) {
+    override suspend fun setEnabledCipherSuites(suites: Array<String>) = lock.withLock {
         sslEngine.enabledCipherSuites = suites
     }
 
-    override suspend fun getSupportedProtocols(): Array<String> {
+    override suspend fun getSupportedProtocols(): Array<String> = lock.withLock {
         return sslEngine.supportedProtocols
     }
 
-    override suspend fun getEnabledProtocols(): Array<String> {
+    override suspend fun getEnabledProtocols(): Array<String> = lock.withLock {
         return sslEngine.enabledProtocols
     }
 
-    override suspend fun setEnabledProtocols(protocols: Array<String>) {
+    override suspend fun setEnabledProtocols(protocols: Array<String>) = lock.withLock {
         sslEngine.enabledProtocols = protocols
     }
 
-    override suspend fun getSession(): SSLSession {
-        startHandshake()
+    override suspend fun getSession(): SSLSession = lock.withLock {
+        startHandshake0() // lock is already acquired
         return sslEngine.session
     }
 
-    override suspend fun getHandshakeSession(): SSLSession? {
+    override suspend fun getHandshakeSession(): SSLSession? = lock.withLock {
         return sslEngine.handshakeSession
     }
 
-    override suspend fun addHandshakeCompletedListener(listener: KHandshakeCompletedListener) {
-        // per the java implementation, ignore the listener if the handshake is already complete
-        handshakeListenersMutex?.withLock {
-            handshakeListeners?.add(listener)
-        }
+    override suspend fun addHandshakeCompletedListener(listener: KHandshakeCompletedListener): Unit = lock.withLock {
+        handshakeListeners.add(listener)
     }
 
-    override suspend fun removeHandshakeCompletedListener(listener: KHandshakeCompletedListener) {
-        handshakeListenersMutex?.withLock {
-            handshakeListeners?.remove(listener)
-        }
+    override suspend fun removeHandshakeCompletedListener(listener: KHandshakeCompletedListener): Unit = lock.withLock {
+        handshakeListeners.remove(listener)
     }
 
-    override suspend fun setUseClientMode(mode: Boolean) {
+    override suspend fun setUseClientMode(mode: Boolean) = lock.withLock {
         sslEngine.useClientMode = mode
     }
 
-    override suspend fun getUseClientMode(): Boolean {
+    override suspend fun getUseClientMode(): Boolean = lock.withLock {
         return sslEngine.useClientMode
     }
 
-    override suspend fun setNeedClientAuth(need: Boolean) {
+    override suspend fun setNeedClientAuth(need: Boolean) = lock.withLock {
         sslEngine.needClientAuth = need
     }
 
-    override suspend fun getNeedClientAuth(): Boolean {
+    override suspend fun getNeedClientAuth(): Boolean = lock.withLock {
         return sslEngine.needClientAuth
     }
 
-    override suspend fun setWantClientAuth(want: Boolean) {
+    override suspend fun setWantClientAuth(want: Boolean) = lock.withLock {
         sslEngine.wantClientAuth = want
     }
 
-    override suspend fun getWantClientAuth(): Boolean {
+    override suspend fun getWantClientAuth(): Boolean = lock.withLock {
         return sslEngine.wantClientAuth
     }
 
-    override suspend fun setEnableSessionCreation(flag: Boolean) {
+    override suspend fun setEnableSessionCreation(flag: Boolean) = lock.withLock {
         sslEngine.enableSessionCreation = flag
     }
 
-    override suspend fun getEnableSessionCreation(): Boolean {
+    override suspend fun getEnableSessionCreation(): Boolean = lock.withLock {
         return sslEngine.enableSessionCreation
     }
 
-    override suspend fun getApplicationProtocol(): String? {
+    override suspend fun getApplicationProtocol(): String? = lock.withLock {
         return sslEngine.applicationProtocol
     }
 
-    override suspend fun getHandshakeApplicationProtocol(): String {
+    override suspend fun getHandshakeApplicationProtocol(): String = lock.withLock {
         return sslEngine.handshakeApplicationProtocol
     }
 
-    override suspend fun setHandshakeApplicationProtocolSelector(selector: BiFunction<KSSLSocket, List<String>, String?>?) {
+    override suspend fun setHandshakeApplicationProtocolSelector(
+        selector: BiFunction<KSSLSocket, List<String>, String?>?
+    ) = lock.withLock {
         if(selector == null) {
             sslEngine.handshakeApplicationProtocolSelector = null
         } else {
@@ -117,7 +115,7 @@ internal abstract class KSSLSocketAbstract(
         }
     }
 
-    override suspend fun getHandshakeApplicationProtocolSelector(): BiFunction<KSSLSocket, List<String>, String?>? {
+    override suspend fun getHandshakeApplicationProtocolSelector(): BiFunction<KSSLSocket, List<String>, String?>? = lock.withLock {
         return sslEngine.handshakeApplicationProtocolSelector?.let {
             if(it is HandshakeApplicationProtocolSelector) {
                 it.selector
@@ -127,44 +125,31 @@ internal abstract class KSSLSocketAbstract(
         }
     }
 
-    override suspend fun getSSLParameters(): SSLParameters {
+    override suspend fun getSSLParameters(): SSLParameters = lock.withLock {
         return sslEngine.sslParameters
     }
 
-    override suspend fun setSSLParameters(params: SSLParameters) {
+    override suspend fun setSSLParameters(params: SSLParameters) = lock.withLock {
         sslEngine.sslParameters = params
     }
 
-    final override suspend fun startHandshake() {
-        try {
-            doHandshake()
-            onSuccessfulHandshake()
-        } catch (th: Throwable) {
-            close()
-            throw th
-        }
-    }
+    /**
+     * Starts the handshake process without acquiring the lock.
+     */
+    protected abstract suspend fun startHandshake0();
 
     /**
-     * Run all the handshake listeners. Runs as its own job.
+     * Must be called after the handshake is complete.
      */
-    private suspend fun onSuccessfulHandshake() {
+    protected suspend fun triggerHandshakeCompletion(session: SSLSession) {
         // get the listeners and close it so no more can be added
-        val listeners = handshakeListenersMutex?.withLock {
-            val listener = handshakeListeners
-
-            handshakeListeners = null
-            handshakeListenersMutex = null
-
-            listener
-        }
-
-        if(listeners.isNullOrEmpty()) {
+        if(handshakeListeners.isEmpty()) {
             return
         }
 
+        // run the listeners in a separate coroutine
         CoroutineScope(coroutineContext).launch {
-            listeners.forEach {
+            handshakeListeners.forEach {
                 runHandshakeCompletedListener(it)
             }
         }
@@ -183,8 +168,6 @@ internal abstract class KSSLSocketAbstract(
             th.printStackTrace()
         }
     }
-
-    protected abstract suspend fun doHandshake()
 
     /**
      * A wrapper for the application protocol selector function to work with the SSLEngine.

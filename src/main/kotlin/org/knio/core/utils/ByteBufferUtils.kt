@@ -1,6 +1,8 @@
 package org.knio.core.utils
 
 import org.knio.core.context.ByteBufferPool
+import org.knio.core.context.ReleasableBuffer
+import java.nio.Buffer
 import java.nio.ByteBuffer
 
 /**
@@ -10,6 +12,7 @@ import java.nio.ByteBuffer
  * @param pool The pool to release the buffer to if it is increased in size.
  * @return The buffer compacted or increased in size.
  */
+/*
 internal fun ByteBuffer.compactOrIncreaseSize(increaseSize: Int, pool: ByteBufferPool?=null): ByteBuffer {
     if (hasRemaining() || limit()!=capacity()) {
         compact()
@@ -22,6 +25,16 @@ internal fun ByteBuffer.compactOrIncreaseSize(increaseSize: Int, pool: ByteBuffe
         return newBuffer
     }
     return this
+}
+ */
+
+internal fun ReleasableBuffer<ByteBuffer>.compactOrIncreaseSize(increaseSize: Int) {
+    val buffer = this.value
+    if (buffer.hasRemaining() || buffer.limit()!=buffer.capacity()) {
+        buffer.compact()
+    } else {
+        this.resize(buffer.capacity() + increaseSize)
+    }
 }
 
 /**

@@ -10,12 +10,8 @@ import org.knio.core.test.servers.accept.AcceptOnlyServer
 import org.knio.core.test.servers.createJavaServerSocket
 import org.knio.core.test.servers.createJavaSocket
 import org.knio.core.test.servers.createKnioSocket
-import org.knio.core.test.utils.createTestSSLContext
-import java.net.InetSocketAddress
 import java.util.function.BiFunction
 import javax.net.ssl.HandshakeCompletedListener
-import javax.net.ssl.SSLContext
-import javax.net.ssl.SSLParameters
 import javax.net.ssl.SSLSocket
 import kotlin.test.assertEquals
 
@@ -27,7 +23,7 @@ class KSSLSocketAbstractTest : TestServerTest<AcceptOnlyServer>() {
         var supportedCipherSuites: Array<String>
 
         // java
-        createJavaSocket(true).use { client ->
+        createJavaSocket().use { client ->
             val sslClient = client as SSLSocket
             val suites = sslClient.supportedCipherSuites
             supportedCipherSuites = suites
@@ -35,7 +31,7 @@ class KSSLSocketAbstractTest : TestServerTest<AcceptOnlyServer>() {
         }
 
         // knio
-        createKnioSocket(true).use { client ->
+        createKnioSocket().use { client ->
             val sslClient = client as KSSLSocket
             val suites = sslClient.getSupportedCipherSuites()
             assertTrue(suites.isNotEmpty())
@@ -48,14 +44,14 @@ class KSSLSocketAbstractTest : TestServerTest<AcceptOnlyServer>() {
     @Test
     fun `test get enabled cypher suites`()  = runServer(true) {
         // java
-        createJavaSocket(true).use { client ->
+        createJavaSocket().use { client ->
             val sslClient = client as SSLSocket
             val suites = sslClient.enabledCipherSuites
             assertTrue(suites.isNotEmpty())
         }
 
         // knio
-        createKnioSocket(true).use { client ->
+        createKnioSocket().use { client ->
             val sslClient = client as KSSLSocket
             val suites = sslClient.getEnabledCipherSuites()
             assertTrue(suites.isNotEmpty())
@@ -65,14 +61,14 @@ class KSSLSocketAbstractTest : TestServerTest<AcceptOnlyServer>() {
     @Test
     fun `test get supported protocols`()  = runServer(true) {
         // java
-        createJavaSocket(true).use { client ->
+        createJavaSocket().use { client ->
             val sslClient = client as SSLSocket
             val protocols = sslClient.supportedProtocols
             assertTrue(protocols.isNotEmpty())
         }
 
         // knio
-        createKnioSocket(true).use { client ->
+        createKnioSocket().use { client ->
             val sslClient = client as KSSLSocket
             val protocols = sslClient.getSupportedProtocols()
             assertTrue(protocols.isNotEmpty())
@@ -84,7 +80,7 @@ class KSSLSocketAbstractTest : TestServerTest<AcceptOnlyServer>() {
         val enabledProtocols: Array<String>
 
         // java
-        createJavaSocket(true).use { client ->
+        createJavaSocket().use { client ->
             val sslClient = client as SSLSocket
             val protocols = sslClient.enabledProtocols
             assertTrue(protocols.isNotEmpty())
@@ -92,7 +88,7 @@ class KSSLSocketAbstractTest : TestServerTest<AcceptOnlyServer>() {
         }
 
         // knio
-        createKnioSocket(true).use { client ->
+        createKnioSocket().use { client ->
             val sslClient = client as KSSLSocket
             val protocols = sslClient.getEnabledProtocols()
             assertTrue(protocols.isNotEmpty())
@@ -103,14 +99,14 @@ class KSSLSocketAbstractTest : TestServerTest<AcceptOnlyServer>() {
     @Test
     fun `test get session`()  = runServer(true) {
         // java
-        createJavaSocket(true).use { client ->
+        createJavaSocket().use { client ->
             val sslClient = client as SSLSocket
             val session = sslClient.session
             assertTrue(session.isValid)
         }
 
         // knio
-        createKnioSocket(true).use { client ->
+        createKnioSocket().use { client ->
             val sslClient = client as KSSLSocket
             val session = sslClient.getSession()
             assertTrue(session.isValid)
@@ -120,14 +116,14 @@ class KSSLSocketAbstractTest : TestServerTest<AcceptOnlyServer>() {
     @Test
     fun `test get handshake session before handshake`()  = runServer(true) {
         // java
-        createJavaSocket(true).use { client ->
+        createJavaSocket().use { client ->
             val sslClient = client as SSLSocket
             val session = sslClient.handshakeSession
             assertEquals(null, session)
         }
 
         // knio
-        createKnioSocket(true).use { client ->
+        createKnioSocket().use { client ->
             val sslClient = client as KSSLSocket
             val session = sslClient.getHandshakeSession()
             assertEquals(null, session)
@@ -137,7 +133,7 @@ class KSSLSocketAbstractTest : TestServerTest<AcceptOnlyServer>() {
     @Test
     fun `test get handshake session after handshake`()  = runServer(true) {
         // java
-        createJavaSocket(true).use { client ->
+        createJavaSocket().use { client ->
             val sslClient = client as SSLSocket
             sslClient.startHandshake()
             val session = sslClient.handshakeSession
@@ -145,7 +141,7 @@ class KSSLSocketAbstractTest : TestServerTest<AcceptOnlyServer>() {
         }
 
         // knio
-        createKnioSocket(true).use { client ->
+        createKnioSocket().use { client ->
             val sslClient = client as KSSLSocket
             sslClient.startHandshake()
             val session = sslClient.getHandshakeSession()
@@ -161,7 +157,7 @@ class KSSLSocketAbstractTest : TestServerTest<AcceptOnlyServer>() {
     @Test
     fun `test add handshake completed listener`()  = runServer(true) {
         // java
-        createJavaSocket(true).use { client ->
+        createJavaSocket().use { client ->
             var isCalled = false
 
             val sslClient = client as SSLSocket
@@ -176,7 +172,7 @@ class KSSLSocketAbstractTest : TestServerTest<AcceptOnlyServer>() {
         }
 
         // knio
-        createKnioSocket(true).use { client ->
+        createKnioSocket().use { client ->
             var isCalled = false
 
             val sslClient = client as KSSLSocket
@@ -194,7 +190,7 @@ class KSSLSocketAbstractTest : TestServerTest<AcceptOnlyServer>() {
     @Test
     fun `test add handshake completed listener after handshake`()  = runServer(true) {
         // java
-        createJavaSocket(true).use { client ->
+        createJavaSocket().use { client ->
             var isCalled = false
 
             val sslClient = client as SSLSocket
@@ -210,7 +206,7 @@ class KSSLSocketAbstractTest : TestServerTest<AcceptOnlyServer>() {
         }
 
         // knio
-        createKnioSocket(true).use { client ->
+        createKnioSocket().use { client ->
             var isCalled = false
 
             val sslClient = client as KSSLSocket
@@ -229,7 +225,7 @@ class KSSLSocketAbstractTest : TestServerTest<AcceptOnlyServer>() {
     @Test
     fun `test add handshake completed listener after handshake but called again`()  = runServer(true) {
         // java
-        createJavaSocket(true).use { client ->
+        createJavaSocket().use { client ->
             var isCalled = false
 
             val sslClient = client as SSLSocket
@@ -246,7 +242,7 @@ class KSSLSocketAbstractTest : TestServerTest<AcceptOnlyServer>() {
         }
 
         // knio
-        createKnioSocket(true).use { client ->
+        createKnioSocket().use { client ->
             var isCalled = false
 
             val sslClient = client as KSSLSocket
@@ -266,7 +262,7 @@ class KSSLSocketAbstractTest : TestServerTest<AcceptOnlyServer>() {
     @Test
     fun `test remove handshake completed listener`()  = runServer(true) {
         // java
-        createJavaSocket(true).use { client ->
+        createJavaSocket().use { client ->
             var isCalled = false
 
             val sslClient = client as SSLSocket
@@ -282,7 +278,7 @@ class KSSLSocketAbstractTest : TestServerTest<AcceptOnlyServer>() {
         }
 
         // knio
-        createKnioSocket(true).use { client ->
+        createKnioSocket().use { client ->
             var isCalled = false
 
             val sslClient = client as KSSLSocket
@@ -301,13 +297,13 @@ class KSSLSocketAbstractTest : TestServerTest<AcceptOnlyServer>() {
     @Test
     fun `test get use client mode`()  = runServer(true) {
         // java
-        createJavaSocket(true).use { client ->
+        createJavaSocket().use { client ->
             val sslClient = client as SSLSocket
             assertTrue(sslClient.useClientMode)
         }
 
         // knio
-        createKnioSocket(true).use { client ->
+        createKnioSocket().use { client ->
             val sslClient = client as KSSLSocket
             assertTrue(sslClient.getUseClientMode())
         }
@@ -316,14 +312,14 @@ class KSSLSocketAbstractTest : TestServerTest<AcceptOnlyServer>() {
     @Test
     fun `test set use client mode`()  = runServer(true) {
         // java
-        createJavaSocket(true).use { client ->
+        createJavaSocket().use { client ->
             val sslClient = client as SSLSocket
             sslClient.useClientMode = false
             assertFalse(sslClient.useClientMode)
         }
 
         // knio
-        createKnioSocket(true).use { client ->
+        createKnioSocket().use { client ->
             val sslClient = client as KSSLSocket
             sslClient.setUseClientMode(false)
             assertFalse(sslClient.getUseClientMode())
@@ -333,14 +329,14 @@ class KSSLSocketAbstractTest : TestServerTest<AcceptOnlyServer>() {
     @Test
     fun `test set enabled cipher suites`()  = runServer(true) {
         // java
-        createJavaSocket(true).use { client ->
+        createJavaSocket().use { client ->
             val sslClient = client as SSLSocket
             val suites = sslClient.supportedCipherSuites
             sslClient.enabledCipherSuites = suites
         }
 
         // knio
-        createKnioSocket(true).use { client ->
+        createKnioSocket().use { client ->
             val sslClient = client as KSSLSocket
             val suites = sslClient.getSupportedCipherSuites()
             sslClient.setEnabledCipherSuites(suites)
@@ -350,14 +346,14 @@ class KSSLSocketAbstractTest : TestServerTest<AcceptOnlyServer>() {
     @Test
     fun `test set enabled protocols`()  = runServer(true) {
         // java
-        createJavaSocket(true).use { client ->
+        createJavaSocket().use { client ->
             val sslClient = client as SSLSocket
             val protocols = sslClient.supportedProtocols
             sslClient.enabledProtocols = protocols
         }
 
         // knio
-        createKnioSocket(true).use { client ->
+        createKnioSocket().use { client ->
             val sslClient = client as KSSLSocket
             val protocols = sslClient.getSupportedProtocols()
             sslClient.setEnabledProtocols(protocols)
@@ -367,13 +363,13 @@ class KSSLSocketAbstractTest : TestServerTest<AcceptOnlyServer>() {
     @Test
     fun `test get need client auth`()  = runServer(true) {
         // java
-        createJavaSocket(true).use { client ->
+        createJavaSocket().use { client ->
             val sslClient = client as SSLSocket
             assertFalse(sslClient.needClientAuth)
         }
 
         // knio
-        createKnioSocket(true).use { client ->
+        createKnioSocket().use { client ->
             val sslClient = client as KSSLSocket
             assertFalse(sslClient.getNeedClientAuth())
         }
@@ -382,14 +378,14 @@ class KSSLSocketAbstractTest : TestServerTest<AcceptOnlyServer>() {
     @Test
     fun `test set need client auth`() = runServer(true) {
         // java
-        createJavaSocket(true).use { client ->
+        createJavaSocket().use { client ->
             val sslClient = client as SSLSocket
             sslClient.needClientAuth = true
             assertTrue(sslClient.needClientAuth)
         }
 
         // knio
-        createKnioSocket(true).use { client ->
+        createKnioSocket().use { client ->
             val sslClient = client as KSSLSocket
             sslClient.setNeedClientAuth(true)
             assertTrue(sslClient.getNeedClientAuth())
@@ -399,14 +395,14 @@ class KSSLSocketAbstractTest : TestServerTest<AcceptOnlyServer>() {
     @Test
     fun `test want client auth`() = runServer(true) {
         // java
-        createJavaSocket(true).use { client ->
+        createJavaSocket().use { client ->
             val sslClient = client as SSLSocket
             sslClient.wantClientAuth = true
             assertTrue(sslClient.wantClientAuth)
         }
 
         // knio
-        createKnioSocket(true).use { client ->
+        createKnioSocket().use { client ->
             val sslClient = client as KSSLSocket
             sslClient.setWantClientAuth(true)
             assertTrue(sslClient.getWantClientAuth())
@@ -416,14 +412,14 @@ class KSSLSocketAbstractTest : TestServerTest<AcceptOnlyServer>() {
     @Test
     fun `test set want client auth`() = runServer(true) {
         // java
-        createJavaSocket(true).use { client ->
+        createJavaSocket().use { client ->
             val sslClient = client as SSLSocket
             sslClient.wantClientAuth = true
             assertTrue(sslClient.wantClientAuth)
         }
 
         // knio
-        createKnioSocket(true).use { client ->
+        createKnioSocket().use { client ->
             val sslClient = client as KSSLSocket
             sslClient.setWantClientAuth(true)
             assertTrue(sslClient.getWantClientAuth())
@@ -433,14 +429,14 @@ class KSSLSocketAbstractTest : TestServerTest<AcceptOnlyServer>() {
     @Test
     fun `test enable session creation`() = runServer(true) {
         // java
-        createJavaSocket(true).use { client ->
+        createJavaSocket().use { client ->
             val sslClient = client as SSLSocket
             sslClient.enableSessionCreation = true
             assertTrue(sslClient.enableSessionCreation)
         }
 
         // knio
-        createKnioSocket(true).use { client ->
+        createKnioSocket().use { client ->
             val sslClient = client as KSSLSocket
             sslClient.setEnableSessionCreation(true)
             assertTrue(sslClient.getEnableSessionCreation())
@@ -450,7 +446,7 @@ class KSSLSocketAbstractTest : TestServerTest<AcceptOnlyServer>() {
     @Test
     fun `test set protocol selector function`() = runServer(true) {
         // java
-        createJavaSocket(true).use { client ->
+        createJavaSocket().use { client ->
             val sslClient = client as SSLSocket
 
             val function = BiFunction<SSLSocket, List<String>, String?> {_, list ->
@@ -467,7 +463,7 @@ class KSSLSocketAbstractTest : TestServerTest<AcceptOnlyServer>() {
         }
 
         // knio
-        createKnioSocket(true).use { client ->
+        createKnioSocket().use { client ->
             val sslClient = client as KSSLSocket
 
             val function = BiFunction<KSSLSocket, List<String>, String?> {_, list ->
@@ -481,6 +477,25 @@ class KSSLSocketAbstractTest : TestServerTest<AcceptOnlyServer>() {
             sslClient.setHandshakeApplicationProtocolSelector(function)
 
             assertEquals(function, sslClient.getHandshakeApplicationProtocolSelector())
+        }
+    }
+
+    @Test
+    fun `test multiple handshakes`() = runServer(true) {
+        // java
+        createJavaSocket().use { client ->
+            val sslClient = client as SSLSocket
+
+            sslClient.startHandshake()
+            sslClient.startHandshake()
+        }
+
+        // knio
+        createKnioSocket().use { client ->
+            val sslClient = client as KSSLSocket
+
+            sslClient.startHandshake()
+            sslClient.startHandshake()
         }
     }
 

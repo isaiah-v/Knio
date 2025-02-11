@@ -5,6 +5,7 @@ import java.lang.Thread.sleep
 import java.net.ServerSocket
 import java.net.Socket
 import java.net.SocketException
+import javax.net.ssl.SSLServerSocket
 import javax.net.ssl.SSLSocket
 
 class AcceptOnlyServer(
@@ -41,5 +42,13 @@ class AcceptOnlyServer(
 
     override suspend fun stop() {
         serverSocket.close()
+    }
+
+    override fun isSSL(): Boolean {
+        return serverSocket is SSLServerSocket
+    }
+
+    override fun getPort(): Int {
+        return serverSocket.localPort
     }
 }

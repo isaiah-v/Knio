@@ -5,6 +5,7 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.net.ServerSocket
 import java.net.Socket
+import javax.net.ssl.SSLServerSocket
 import javax.net.ssl.SSLSocket
 
 /**
@@ -98,5 +99,13 @@ class JavaReverseServer(
 
     override suspend fun stop() {
         serverSocket.close()
+    }
+
+    override fun isSSL(): Boolean {
+        return serverSocket is SSLServerSocket
+    }
+
+    override fun getPort(): Int {
+        return serverSocket.localPort
     }
 }
