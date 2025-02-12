@@ -127,7 +127,7 @@ internal abstract class KSocketAbstract(
         if(!ch.isOpen) {
             return ANY_LOCAL_ADDRESS
         }
-        return this.localAddress?.address ?: ANY_LOCAL_ADDRESS
+        return this.localAddress?.address ?: InetAddress.getLoopbackAddress()
     }
 
     @NotSuspended

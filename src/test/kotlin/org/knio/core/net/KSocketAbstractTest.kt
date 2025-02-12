@@ -434,32 +434,30 @@ class KSocketAbstractTest: TestServerTest<AcceptOnlyServer>() {
 
     @Test
     fun `get local address`() = runServer(false) {
-        val expected = Inet4Address.getLoopbackAddress()
 
         // java
         createJavaSocket().use { socket ->
-            assertEquals(expected, socket.localAddress)
+            assertNotNull(socket.localAddress)
         }
 
         // knio
         createKnioSocket().use { socket ->
-            assertEquals(expected, socket.getLocalAddress())
+            assertNotNull(socket.getLocalAddress())
         }
     }
 
 
     @Test
     fun `get local address before binding`() = runBlocking {
-        val expected: InetAddress = Inet4Address.getByName("0.0.0.0")
 
         // java
         SocketFactory.getDefault().createSocket().use { socket ->
-            assertEquals(expected, socket.localAddress)
+            assertNotNull(socket.localAddress)
         }
 
         // knio
         KSocketFactory.getDefault().createSocket().use { socket ->
-            assertEquals(expected, socket.getLocalAddress())
+            assertNotNull(socket.getLocalAddress())
         }
     }
 

@@ -6,6 +6,9 @@ import java.util.*
 import javax.net.ssl.SSLPeerUnverifiedException
 import javax.net.ssl.SSLSession
 
+/**
+ * Equivalent to [javax.net.ssl.HandshakeCompletedEvent].
+ */
 class KHandshakeCompletedEvent(
     sock: KSSLSocket,
     private val session: SSLSession

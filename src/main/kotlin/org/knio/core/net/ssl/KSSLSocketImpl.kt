@@ -30,8 +30,8 @@ internal class KSSLSocketImpl (
 ) {
 
     private var isInputShutdown = false
-    private val networkRead: ReleasableBuffer<ByteBuffer> = context.byteBufferPool.acquireReleasableByteBuffer(sslEngine.session.packetBufferSize)
-    private val application: ReleasableBuffer<ByteBuffer> = context.byteBufferPool.acquireReleasableByteBuffer(sslEngine.session.applicationBufferSize)
+    private val networkRead = ReadWriteBuffer(context.byteBufferPool.acquireReleasableByteBuffer(sslEngine.session.packetBufferSize))
+    private val application = ReadWriteBuffer(context.byteBufferPool.acquireReleasableByteBuffer(sslEngine.session.applicationBufferSize))
 
     private var isOutputShutdown = false
     private var networkWrite: ReleasableBuffer<ByteBuffer> = context.byteBufferPool.acquireReleasableByteBuffer(sslEngine.session.packetBufferSize)
@@ -85,7 +85,7 @@ internal class KSSLSocketImpl (
     }
 
     /**
-     * Same as [KSSLSocket.startHandshake]. This is an internal function that executes without
+     * Same as [KSSLSocket.startHandshake] except that this is an internal function that executes without
      * acquiring the lock.
      *
      * @see [KSSLSocket.startHandshake]
@@ -93,26 +93,26 @@ internal class KSSLSocketImpl (
     private suspend fun startHandshake0() {
         @Suppress("BlockingMethodInNonBlockingContext")
         sslEngine.beginHandshake()
-        handleHandshake()
+        handleHandshake0()
     }
 
     /**
      * Handles the handshake process.
+     *
+     * A handshake may be initiated at any time, and may be initiated multiple times. This method will handle processing
+     * the handshake until it is complete.
      */
-    private suspend fun handleHandshake() {
+    private suspend fun handleHandshake0() {
         if(!sslEngine.isHandshaking) {
             return
         }
 
-        networkRead.value.clear().flip()
+        // The networkRead buffer is assumed to start in read mode.
+        networkRead.setMode(true)
+
         networkWrite.value.clear()
 
-        if(application.value.hasRemaining()) {
-            // TODO verify this is correct
-            // If there's 3 bytes left to read, the buffer should be flipped such that the
-            // position is 3 and the limit is capacity. This is because the buffer is in write mode
-            application.value.flip().compact()
-        }
+        application.setMode(false)
 
         var handshakeSession: SSLSession? = null
 
@@ -130,19 +130,23 @@ internal class KSSLSocketImpl (
 
         // clear buffers
         //networkRead?.clear()
-        application.value.flip()
+        //application.swap()
         networkWrite.value.clear()
+
+        if(handshakeSession != null) {
+            super.triggerHandshakeCompletion(handshakeSession)
+        }
     }
 
     private suspend fun initBuffersForHandshake(session: SSLSession) {
         if(networkRead.value.capacity()<session.packetBufferSize) {
-            networkRead.resize(session.packetBufferSize)
+            networkRead.buffer.resize(session.packetBufferSize)
         }
         if(networkWrite.value.capacity()<session.packetBufferSize) {
             networkWrite.resize(session.packetBufferSize)
         }
         if(application.value.capacity()<session.applicationBufferSize) {
-            application.resize(session.applicationBufferSize)
+            application.buffer.resize(session.applicationBufferSize)
         }
     }
 
@@ -220,19 +224,20 @@ internal class KSSLSocketImpl (
         while (true) {
             // try to unwrap data from the network buffer
             @Suppress("BlockingMethodInNonBlockingContext")
-            val result = sslEngine.unwrap(networkRead.value, application.value)
+            val result = sslEngine.unwrap(networkRead.read, application.write)
 
             when (result.status!!) {
                 SSLEngineResult.Status.BUFFER_UNDERFLOW -> {
                     // An underflow implies there wasn't enough information in the network buffer to unwrap
 
                     // increase the available network buffer size
-                    networkRead.compactOrIncreaseSize(
+                    networkRead.buffer.compactOrIncreaseSize(
                         sslEngine.session.packetBufferSize
                     )
+                    networkRead.isRead = false
 
                     // read more data from the channel
-                    val count = ch.readSuspend(networkRead.value)
+                    val count = ch.readSuspend(networkRead.write)
                     if(count == -1) {
                         throw SSLException("Connection closed during handshake")
                     }
@@ -242,11 +247,11 @@ internal class KSSLSocketImpl (
                     }
 
                     // flip the buffer to prepare for unwrapping
-                    networkRead.value.flip()
+                    networkRead.swap()
                 }
 
                 SSLEngineResult.Status.BUFFER_OVERFLOW -> {
-                    application.compactOrIncreaseSize(
+                    application.buffer.compactOrIncreaseSize(
                         sslEngine.session.applicationBufferSize
                     )
                 }
@@ -277,7 +282,7 @@ internal class KSSLSocketImpl (
     }
 
     private suspend fun shutdownInput0() {
-        if(networkRead.released) {
+        if(networkRead.buffer.released) {
             return
         }
 
@@ -293,7 +298,7 @@ internal class KSSLSocketImpl (
             networkRead.value.clear()
         } finally {
             isInputShutdown = true
-            networkRead.release()
+            networkRead.buffer.release()
         }
     }
 
@@ -372,14 +377,23 @@ internal class KSSLSocketImpl (
         read0(b)
     }
 
-    private suspend fun read0(b: ByteBuffer): Int {
-        // enter with the application buffer in read mode
 
-        if(isInputShutdown && !application.value.hasRemaining()) {
+    /**
+     * @implNote The `application` buffer must be empty or in a "read state" when exiting this method
+     *
+     * Buffer States:
+     *  - Undefined:   Buffer Empty
+     *  - Read State:  Bytes are read FROM the buffer
+     *  - Write State: Bytes are written TO the buffer
+     */
+    private suspend fun read0(b: ByteBuffer): Int {
+        application.setMode(true)
+
+        if(isInputShutdown && !application.read.hasRemaining()) {
             return -1
         }
 
-        if (application.released || networkRead.released) {
+        if (application.buffer.released || networkRead.buffer.released) {
             return -1
         }
         val app = application
@@ -395,7 +409,7 @@ internal class KSSLSocketImpl (
 
             // Add remaining application data to the buffer
             if(app.value.hasRemaining()) {
-                // application buffer = read mode
+                application.setMode(true)
 
                 val count = min(app.value.remaining(), b.remaining())
                 b.put(b.position(), app.value, app.value.position(), count)
@@ -410,29 +424,29 @@ internal class KSSLSocketImpl (
             if(sslEngine.isHandshaking) {
                 // application buffer = write mode
 
-                app.value.clear()
-                handleHandshake() // < - flips application buffer to read mode
+                app.clear(true)
+                handleHandshake0() // < - flips application buffer to read mode
                 continue@input
             }
 
             if(net.value.hasRemaining()) {
-                // application buffer = write mode
+                // app is empty. Needs to be in write mode
+                app.isRead = false
 
-                app.value.clear()
                 while(true) {
 
                     @Suppress("BlockingMethodInNonBlockingContext")
-                    val result = sslEngine.unwrap(net.value, app.value)
+                    val result = sslEngine.unwrap(net.read, app.write)
 
                     when (result.status!!) {
                         SSLEngineResult.Status.BUFFER_UNDERFLOW -> {
-                            net.compactOrIncreaseSize(sslEngine.session.packetBufferSize)
+                            net.buffer.compactOrIncreaseSize(sslEngine.session.packetBufferSize)
                         }
                         SSLEngineResult.Status.BUFFER_OVERFLOW -> {
-                            app.compactOrIncreaseSize(sslEngine.session.applicationBufferSize)
+                            app.buffer.compactOrIncreaseSize(sslEngine.session.applicationBufferSize)
                         }
                         SSLEngineResult.Status.OK -> {
-                            app.value.flip() // flip to read mode
+                            app.swap()
                             break
                         }
                         SSLEngineResult.Status.CLOSED -> {
@@ -444,8 +458,8 @@ internal class KSSLSocketImpl (
             } else {
                 // application buffer = empty no state
 
-                net.value.clear()
-                val count = ch.readSuspend(net.value, getReadTimeout())
+                net.clear(false)
+                val count = ch.readSuspend(net.write, getReadTimeout())
                 if(count == -1) {
                     shutdownInput0()
                     break@input
@@ -454,7 +468,7 @@ internal class KSSLSocketImpl (
                     // return if no data read
                     break@input
                 }
-                net.value.flip()
+                net.swap()
             }
         }
 
@@ -480,7 +494,7 @@ internal class KSSLSocketImpl (
 
             // Check if we're handshaking (could be initiated at any time, any number of times)
             if(sslEngine.isHandshaking) {
-                handleHandshake()
+                handleHandshake0()
                 continue
             }
 
@@ -530,4 +544,65 @@ internal class KSSLSocketImpl (
     private val SSLEngine.isHandshaking: Boolean
         get() = this.handshakeStatus != SSLEngineResult.HandshakeStatus.FINISHED
                 && this.handshakeStatus != SSLEngineResult.HandshakeStatus.NOT_HANDSHAKING
+
+
+    /**
+     * Keeps track of the read/write state of the buffer.
+     *
+     * - *Read Mode* is defined as the state in which data is read from this buffer
+     * - *Write Mode* is defined as the state in which data is written into this buffer
+     */
+    private class ReadWriteBuffer(
+        val buffer: ReleasableBuffer<ByteBuffer>
+    ) {
+        var isRead: Boolean = false
+
+        /** Returns the buffer */
+        val value: ByteBuffer get() = buffer.value
+
+        /** Returns the buffer if in read-mode, otherwise throws an exception */
+        val read: ByteBuffer get() {
+            require(isRead)
+            return buffer.value
+        }
+
+        /** Returns the buffer if in write-mode, otherwise throws an exception */
+        val write: ByteBuffer get() {
+            require(!isRead)
+            return buffer.value
+        }
+
+        /**
+         * Swaps the buffer between read and write mode, preparing it for the opposite operation.
+         */
+        fun swap(): ByteBuffer {
+            if(isRead) {
+                isRead = false
+                return buffer.value.compact()
+            } else {
+                isRead = true
+                return buffer.value.flip()
+            }
+        }
+
+        /**
+         * Sets the buffer to the specified mode. If the buffer is already in the specified mode, this method does
+         * nothing, otherwise it swaps the buffer to the opposite mode.
+         */
+        fun setMode(isRead: Boolean) {
+            if(this.isRead != isRead) {
+                swap()
+            }
+        }
+
+        /**
+         * Clears the buffer and sets the mode to the specified value.
+         */
+        fun clear(isRead: Boolean? = null): ByteBuffer {
+            if(isRead!=null) {
+                this.isRead = isRead
+            }
+            return buffer.value.clear()
+        }
+    }
 }

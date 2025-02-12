@@ -152,17 +152,17 @@ internal abstract class KSSLSocketAbstract(
         // run the listeners in a separate coroutine
         CoroutineScope(coroutineContext).launch {
             handshakeListeners.forEach {
-                runHandshakeCompletedListener(it)
+                runHandshakeCompletedListener(it, session)
             }
         }
     }
 
-    private suspend fun runHandshakeCompletedListener(listener: KHandshakeCompletedListener) {
+    private suspend fun runHandshakeCompletedListener(listener: KHandshakeCompletedListener, session: SSLSession) {
         try {
             listener.handshakeCompleted(
                 KHandshakeCompletedEvent(
                     this,
-                    sslEngine.session
+                    session
                 )
             )
         } catch (th: Throwable) {

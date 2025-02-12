@@ -18,14 +18,14 @@ class RehandshakeTest: TestServerTest<RehandshakeServer>() {
     @Test
     fun `test single handshake`() = runServer(true) {
         // Java
-/*        createJavaSSLSocket(PROTOCOL).use { sslClient ->
+        createJavaSSLSocket(PROTOCOL).use { sslClient ->
             val expected = "hello world"
 
             sslClient.write(expected)
             val result = sslClient.read()
 
             assertEquals(expected, result)
-        }*/
+        }
 
         // Knio
         createKnioSSLSocket(PROTOCOL).use { sslClient ->
@@ -43,7 +43,6 @@ class RehandshakeTest: TestServerTest<RehandshakeServer>() {
         // on each iteration, the server will request a re-handshake
 
         // Java
-        /*
         createJavaSSLSocket("TLSv1.2").use { sslClient ->
             val expectedList = listOf(
                 "test 1",
@@ -60,7 +59,7 @@ class RehandshakeTest: TestServerTest<RehandshakeServer>() {
                 assertEquals(expected, result)
             }
         }
-         */
+
 
         // Knio
         createKnioSSLSocket("TLSv1.2").use { sslClient ->
@@ -73,6 +72,8 @@ class RehandshakeTest: TestServerTest<RehandshakeServer>() {
             )
 
             for(expected in expectedList) {
+                println(expected)
+
                 sslClient.write(expected)
                 val result = sslClient.read()
 
